@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firefly Catcher</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1a1f2b 0%, #2c2b4b 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+        }
+
+        #gameCanvas {
+            display: block;
+            cursor: pointer;
+            border: 4px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(26, 31, 43, 0.85);
+            backdrop-filter: blur(12px);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            z-index: 10;
+        }
+
+        .score-display {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(255, 100, 100, 0.3);
+        }
+
+        .time-display {
+            font-size: 18px;
+            color: #c0c0d0;
+            margin-bottom: 10px;
+        }
+
+        .high-score {
+            font-size: 14px;
+            color: #a0a0b0;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #4a86e8 0%, #2a4bc0 100%);
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(74, 134, 232, 0.4);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #2a1f4b 0%, #1a1f2b 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+            max-width: 400px;
+            width: 90%;
+            color: #ecf0f1;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 100, 100, 0.7);
+        }
+
+        .modal h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+
+        .modal p {
+            font-size: 18px;
+            color: #c0c0d0;
+            margin-bottom: 30px;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            outline: none;
+            background: rgba(26, 31, 43, 0.6);
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+
+        .modal input:focus {
+            border-color: #4a86e8;
+            box-shadow: 0 0 10px rgba(74, 134, 232, 0.3);
+        }
+
+        .modal input::placeholder {
+            color: #a0a0b0;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .modal-buttons .btn {
+            flex: 1;
+            padding: 15px;
+            background: linear-gradient(135deg, #4a86e8 0%, #2a4bc0 100%);
+            color: #fff;
+        }
+
+        .leaderboard {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .leaderboard-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid;
+            background: rgba(26, 31, 43, 0.5);
+            color: #ecf0f1;
+            transition: all 0.3s ease;
+        }
+
+        .leaderboard-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .leaderboard-item.rank-1 { 
+            border-color: rgba(255, 100, 100, 0.5); 
+            background: rgba(255, 100, 100, 0.1);
+        }
+        .leaderboard-item.rank-2 { 
+            border-color: rgba(192, 192, 192, 0.5); 
+            background: rgba(192, 192, 192, 0.1);
+        }
+        .leaderboard-item.rank-3 { 
+            border-color: rgba(205, 127, 50, 0.5); 
+            background: rgba(205, 127, 50, 0.1);
+        }
+        .leaderboard-item.rank-other { 
+            border-color: rgba(255, 255, 255, 0.1); 
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #ecf0f1;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            color: #4a86e8;
+            transform: scale(1.1);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="ui-panel">
+            <div class="score-display">점수: <span id="score">0</span></div>
+            <div class="time-display">시간: <span id="time">30</span>초</div>
+            <div class="high-score">최고점수: <span id="highScore">0</span></div>
+        </div>
+
+        <div class="controls">
+            <button id="leaderboardBtn" class="btn">🏆</button>
+            <button id="pauseBtn" class="btn hidden">⏸️</button>
+            <button id="playBtn" class="btn hidden">▶️</button>
+            <button id="restartBtn" class="btn">🔄</button>
+        </div>
+
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+        <!-- 게임 시작 화면 -->
+        <div id="startScreen" class="overlay">
+            <div class="modal">
+                <h1>✨</h1>
+                <h2>Firefly Catcher</h2>
+                <p>30초 안에 최대한 많은 반딧불이를 잡아보세요!</p>
+                <button id="startBtn" class="btn" style="width: 100%; padding: 15px;">게임 시작</button>
+            </div>
+        </div>
+
+        <!-- 일시정지 화면 -->
+        <div id="pauseScreen" class="overlay hidden">
+            <div class="modal">
+                <h2>게임 일시정지</h2>
+                <button id="resumeBtn" class="btn" style="width: 100%; padding: 15px;">계속하기</button>
+            </div>
+        </div>
+
+        <!-- 이름 입력 모달 -->
+        <div id="nameModal" class="overlay hidden">
+            <div class="modal">
+                <h2>게임 종료!</h2>
+                <p style="font-size: 36px; color: #ff6666; margin: 20px 0;"><span id="finalScore">0</span>점</p>
+                <input type="text" id="playerName" placeholder="플레이어 이름" maxlength="20">
+                <div class="modal-buttons">
+                    <button id="saveBtn" class="btn">기록 저장</button>
+                    <button id="skipBtn" class="btn">나중에</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 리더보드 모달 -->
+        <div id="leaderboardModal" class="overlay hidden">
+            <div class="modal" style="max-width: 500px;">
+                <button class="close-btn" id="closeLeaderboard">×</button>
+                <h2>🏆 리더보드</h2>
+                <div id="leaderboard" class="leaderboard">
+                    <p style="color: #a0a0b0; text-align: center; padding: 40px;">아직 기록이 없습니다.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class FireflyCatcher {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.gameState = 'menu'; // menu, playing, paused, gameOver
+                this.score = 0;
+                this.timeLeft = 30;
+                this.highScore = parseInt(localStorage.getItem('highScore') || '0');
+                this.fireflies = [];
+                this.leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+                this.animationId = null;
+                this.gameTimer = null;
+                this.fireflySpawner = null;
+
+                this.initializeGame();
+                this.bindEvents();
+                this.updateUI();
+            }
+
+            initializeGame() {
+                this.drawBackground();
+                this.drawInstructions();
+            }
+
+            bindEvents() {
+                document.getElementById('startBtn').addEventListener('click', () => {
+                    this.startGame();
+                });
+
+                document.getElementById('pauseBtn').addEventListener('click', () => {
+                    this.pauseGame();
+                });
+
+                document.getElementById('resumeBtn').addEventListener('click', () => {
+                    this.resumeGame();
+                });
+
+                document.getElementById('restartBtn').addEventListener('click', () => {
+                    this.restartGame();
+                });
+
+                document.getElementById('leaderboardBtn').addEventListener('click', () => {
+                    this.showLeaderboard();
+                });
+
+                document.getElementById('closeLeaderboard').addEventListener('click', () => {
+                    this.hideLeaderboard();
+                });
+
+                document.getElementById('saveBtn').addEventListener('click', () => {
+                    this.saveScore();
+                });
+
+                document.getElementById('skipBtn').addEventListener('click', () => {
+                    this.skipSave();
+                });
+
+                this.canvas.addEventListener('click', (e) => {
+                    if (this.gameState === 'playing') {
+                        this.handleFireflyClick(e);
+                    }
+                });
+
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space' && this.gameState === 'playing') {
+                        this.pauseGame();
+                    }
+                });
+            }
+
+            startGame() {
+                this.gameState = 'playing';
+                this.score = 0;
+                this.timeLeft = 30;
+                this.fireflies = [];
+                
+                document.getElementById('startScreen').classList.add('hidden');
+                document.getElementById('pauseBtn').classList.remove('hidden');
+                
+                this.startGameLoop();
+                this.startTimer();
+                this.startFireflySpawner();
+                this.updateUI();
+            }
+
+            pauseGame() {
+                if (this.gameState === 'playing') {
+                    this.gameState = 'paused';
+                    document.getElementById('pauseScreen').classList.remove('hidden');
+                    document.getElementById('pauseBtn').classList.add('hidden');
+                    document.getElementById('playBtn').classList.remove('hidden');
+                    this.stopTimers();
+                }
+            }
+
+            resumeGame() {
+                if (this.gameState === 'paused') {
+                    this.gameState = 'playing';
+                    document.getElementById('pauseScreen').classList.add('hidden');
+                    document.getElementById('pauseBtn').classList.remove('hidden');
+                    document.getElementById('playBtn').classList.add('hidden');
+                    this.startTimer();
+                    this.startFireflySpawner();
+                }
+            }
+
+            restartGame() {
+                this.stopTimers();
+                this.gameState = 'menu';
+                this.score = 0;
+                this.timeLeft = 30;
+                this.fireflies = [];
+                
+                document.getElementById('startScreen').classList.remove('hidden');
+                document.getElementById('pauseScreen').classList.add('hidden');
+                document.getElementById('nameModal').classList.add('hidden');
+                document.getElementById('pauseBtn').classList.add('hidden');
+                document.getElementById('playBtn').classList.add('hidden');
+                
+                this.initializeGame();
+                this.updateUI();
+            }
+
+            endGame() {
+                this.gameState = 'gameOver';
+                this.stopTimers();
+                
+                document.getElementById('finalScore').textContent = this.score;
+                document.getElementById('nameModal').classList.remove('hidden');
+                document.getElementById('pauseBtn').classList.add('hidden');
+                
+                if (this.score > this.highScore) {
+                    this.highScore = this.score;
+                    localStorage.setItem('highScore', this.highScore.toString());
+                    this.updateUI();
+                }
+            }
+
+            startGameLoop() {
+                const gameLoop = () => {
+                    if (this.gameState === 'playing') {
+                        this.update();
+                        this.draw();
+                        this.animationId = requestAnimationFrame(gameLoop);
+                    }
+                };
+                gameLoop();
+            }
+
+            startTimer() {
+                this.gameTimer = setInterval(() => {
+                    this.timeLeft--;
+                    this.updateUI();
+                    
+                    if (this.timeLeft <= 0) {
+                        this.endGame();
+                    }
+                }, 1000);
+            }
+
+            startFireflySpawner() {
+                this.fireflySpawner = setInterval(() => {
+                    this.spawnFirefly();
+                }, 500);
+            }
+
+            stopTimers() {
+                if (this.animationId) {
+                    cancelAnimationFrame(this.animationId);
+                    this.animationId = null;
+                }
+                if (this.gameTimer) {
+                    clearInterval(this.gameTimer);
+                    this.gameTimer = null;
+                }
+                if (this.fireflySpawner) {
+                    clearInterval(this.fireflySpawner);
+                    this.fireflySpawner = null;
+                }
+            }
+
+            spawnFirefly() {
+                const baseX = Math.random() * (this.canvas.width - 80) + 40;
+                const firefly = {
+                    baseX: baseX,
+                    x: baseX,
+                    y: -15,
+                    size: 15,
+                    speed: Math.random() * 1.5 + 0.5,
+                    value: Math.random() < 0.1 ? 10 : 1,
+                    pulsePhase: 0,
+                    pulseSpeed: Math.random() * 0.05 + 0.02,
+                    pulseAmplitude: 2,
+                    waveAmplitude: Math.random() * 30 + 15,
+                    waveFrequency: Math.random() * 0.03 + 0.01
+                };
+                this.fireflies.push(firefly);
+            }
+
+            handleFireflyClick(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                for (let i = this.fireflies.length - 1; i >= 0; i--) {
+                    const firefly = this.fireflies[i];
+                    const distance = Math.sqrt(
+                        Math.pow(x - firefly.x, 2) + Math.pow(y - firefly.y, 2)
+                    );
+
+                    if (distance < firefly.size) {
+                        this.score += firefly.value;
+                        this.fireflies.splice(i, 1);
+                        this.updateUI();
+                        break;
+                    }
+                }
+            }
+
+            update() {
+                for (let i = this.fireflies.length - 1; i >= 0; i--) {
+                    const firefly = this.fireflies[i];
+                    firefly.y += firefly.speed;
+                    firefly.x = firefly.baseX + Math.sin(firefly.y * firefly.waveFrequency) * firefly.waveAmplitude;
+                    firefly.pulsePhase += firefly.pulseSpeed;
+
+                    if (firefly.y > this.canvas.height + 15) {
+                        this.fireflies.splice(i, 1);
+                    }
+                }
+            }
+
+            draw() {
+                this.drawBackground();
+                this.drawFireflies();
+            }
+
+            drawBackground() {
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                gradient.addColorStop(0, '#1a1f2b');
+                gradient.addColorStop(1, '#2c2b4b');
+                
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+
+            drawInstructions() {
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                this.ctx.font = '24px Poppins';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('게임 시작을 클릭하여 플레이하세요!', this.canvas.width / 2, this.canvas.height / 2);
+            }
+
+            drawFireflies() {
+                this.fireflies.forEach(firefly => {
+                    this.ctx.save();
+                    this.ctx.translate(firefly.x, firefly.y);
+                    const currentSize = firefly.size + Math.sin(firefly.pulsePhase) * firefly.pulseAmplitude;
+                    
+                    // 붉은톤 반딧불이 색상
+                    const color = firefly.value === 10 ? 'rgba(255, 100, 100, ' : 'rgba(255, 150, 150, ';
+                    
+                    // 반딧불이 빛나는 효과
+                    const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, currentSize * 2);
+                    gradient.addColorStop(0, color + '1)');
+                    gradient.addColorStop(0.7, color + '0.3)');
+                    gradient.addColorStop(1, color + '0)');
+                    
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, currentSize * 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // 반딧불이 본체
+                    this.ctx.fillStyle = color + '1)';
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, currentSize * 0.7, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    this.ctx.restore();
+                });
+            }
+
+            updateUI() {
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('time').textContent = this.timeLeft;
+                document.getElementById('highScore').textContent = this.highScore;
+            }
+
+            showLeaderboard() {
+                this.renderLeaderboard();
+                document.getElementById('leaderboardModal').classList.remove('hidden');
+            }
+
+            hideLeaderboard() {
+                document.getElementById('leaderboardModal').classList.add('hidden');
+            }
+
+            renderLeaderboard() {
+                const leaderboardDiv = document.getElementById('leaderboard');
+                
+                if (this.leaderboard.length === 0) {
+                    leaderboardDiv.innerHTML = '<p style="color: #a0a0b0; text-align: center; padding: 40px;">아직 기록이 없습니다.</p>';
+                    return;
+                }
+
+                const sortedLeaderboard = this.leaderboard.sort((a, b) => b.score - a.score);
+                
+                leaderboardDiv.innerHTML = sortedLeaderboard.map((entry, index) => {
+                    const rankClass = index === 0 ? 'rank-1' : 
+                                    index === 1 ? 'rank-2' : 
+                                    index === 2 ? 'rank-3' : 'rank-other';
+                    
+                    const medal = index === 0 ? '🥇' : 
+                                index === 1 ? '🥈' : 
+                                index === 2 ? '🥉' : `${index + 1}위`;
+                    
+                    return `
+                        <div class="leaderboard-item ${rankClass}">
+                            <div>
+                                <span style="font-weight: 600;">${medal}</span>
+                                <span style="margin-left: 10px;">${entry.name}</span>
+                            </div>
+                            <div style="font-weight: 700; color: #ff6666;">${entry.score}점</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            saveScore() {
+                const playerName = document.getElementById('playerName').value.trim();
+                
+                if (!playerName) {
+                    alert('이름을 입력해주세요.');
+                    return;
+                }
+
+                const scoreEntry = {
+                    name: playerName,
+                    score: this.score,
+                    date: new Date().toISOString()
+                };
+
+                this.leaderboard.push(scoreEntry);
+                localStorage.setItem('leaderboard', JSON.stringify(this.leaderboard));
+                
+                document.getElementById('nameModal').classList.add('hidden');
+                document.getElementById('playerName').value = '';
+                
+                this.showLeaderboard();
+            }
+
+            skipSave() {
+                document.getElementById('nameModal').classList.add('hidden');
+                document.getElementById('playerName').value = '';
+           }
+        }
+
+        const game = new FireflyCatcher();
+    </script>
+</body>
+</html>
